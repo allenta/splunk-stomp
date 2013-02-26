@@ -25,7 +25,16 @@ Some useful recipes while developing. See [Developer tools for modular inputs](h
 
 - Check script status in `https://localhost:8089/services/admin/inputstatus`.
 
-- Any log entries/errors will get written to `$SPLUNK_HOME/var/log/splunk/splunkd.log`
+- Any log entries/errors will be written to `$SPLUNK_HOME/var/log/splunk/splunkd.log`
+
+- Packaging intructions (check out [documentation](http://docs.splunk.com/Documentation/Splunk/latest/AdvancedDev/PackageApp) for extra information):
+
+  ```
+    $ find stomp -type f -name "*pyc" -exec rm -f {} \;
+    $ export COPYFILE_DISABLE=true
+    $ tar cvfz stomp.tar.gz stomp/
+    $ mv stomp.tar.gz stomp.spl
+  ```
 
 Pending Tasks
 -------------
