@@ -1,1 +1,2 @@
-## Splunk STOMP Modular Input v1.0
+Splunk STOMP Modular Input
+==========================

@@ -1,0 +1,12 @@
+Splunk STOMP Modular Input developers are:
+
+    - Carlos Abalde <cabalde@allenta.com>
+
+Splunk STOMP Modular Input is sponsored by Allenta Consulting
+(http://allenta.com).
+
+    - For general inquiries, please, contact us directly at
+    info@allenta.com.
+
+    - For bug reports and feature suggestions, please, use GitHub's
+    issue tracker at https://github.com/allenta/splunk-stomp/issues.
