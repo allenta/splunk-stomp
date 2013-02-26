@@ -33,8 +33,8 @@ if __name__ == '__main__':
     parser.add_option(
         '--destination',
         dest='destination',
-        default='/queue/test',
-        help='Destination name (defaults to /queue/test)',
+        default='/queue/whatever',
+        help='Destination name (defaults to /queue/whatever)',
         metavar='QUEUE NAME')
     parser.add_option(
         '--message',
