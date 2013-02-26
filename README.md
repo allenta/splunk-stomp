@@ -7,7 +7,7 @@ STOMP is currently supported by many popular MOM products such as [Apache Active
 Quickstart
 ==========
 
-Simply copy [stomp](https://github.com/allenta/splunk-stomp/tree/master/stomp) folder to `$SPLUNK_HOME/etc/apps/` and restart Splunk.
+Simply [download the add-on from splunkbase](http://splunk-base.splunk.com/apps/Splunk%20STOMP%20Modular%20Input) (or copy [stomp](https://github.com/allenta/splunk-stomp/tree/master/stomp) folder to `$SPLUNK_HOME/etc/apps/`), follow the intructions, and restart Splunk.
 
 As any other modular input, you can configure it via `Manager > DataInputs` in your Splunk installation.
 
