@@ -1,2 +1,0 @@
-Splunk STOMP Modular Input
-==========================
