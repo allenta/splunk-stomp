@@ -39,6 +39,8 @@ Some useful recipes while developing. See [Developer tools for modular inputs](h
 Pending Tasks
 -------------
 
-- Scripts are NOT killed on Splunk restart. Consider dirty workarounds like [this](http://splunk-base.splunk.com/answers/69630/modular-input-scripts-dont-die-during-splunk-restart).
-
 - Improve error handling.
+
+- Header indexing option.
+
+- Strip newline characters from message body option.
