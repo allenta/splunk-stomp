@@ -6,6 +6,7 @@
 """
 
 import sys
+import platform
 import time
 import logging
 import re
@@ -53,17 +54,40 @@ SCHEME = '''<scheme>
 
 # Splunk helper class.
 class SplunkHelper(object):
+    PID = None
+    IS_WINDOWS = None
+
     @classmethod
-    def init_logger(cls):
+    def init(cls):
         '''
-        Sets up logging suitable for Splunk comsumption.
+        General Splunk script initializations.
         '''
+        # Sets up logging suitable for Splunk comsumption.
         logging.root
         logging.root.setLevel(logging.DEBUG)
         formatter = logging.Formatter('%(levelname)s %(message)s')
         handler = logging.StreamHandler()
         handler.setFormatter(formatter)
         logging.root.addHandler(handler)
+
+        # Fetch current process PID. Required to implement dirty workarounds
+        # due to issues when restarting/stopping Splunk (see is_splunkd_running).
+        cls.PID = os.getpid()
+        cls.IS_WINDOWS = platform.system().lower() == 'windows'
+
+    @classmethod
+    def is_splunkd_running(cls):
+        '''
+        Due to problems killing modular input scripts when stopping/restarting
+        Splunk, a dirty check is provided to stop the scripts if the parent
+        splunkd process disappears.
+        '''
+        if not cls.IS_WINDOWS:
+            for pid in (cls.PID, os.getppid()):
+                gparent_pid = os.popen('ps -p %d -oppid=' % pid).read().strip()
+                if not gparent_pid or int(gparent_pid) == 1:
+                    return False
+        return True
 
     @classmethod
     def open_stream(self):
@@ -262,15 +286,15 @@ def run():
         connection.start()
         connection.connect()
         connection.subscribe(destination=destination, ack='auto')
-        while True:
-            time.sleep(60)
+        while SplunkHelper.is_splunkd_running():
+            time.sleep(10)
     finally:
         SplunkHelper.close_stream()
         connection.disconnect()
 
 
 if __name__ == '__main__':
-    SplunkHelper.init_logger()
+    SplunkHelper.init()
     if len(sys.argv) > 1:
         if sys.argv[1] == '--scheme':
             do_scheme()
