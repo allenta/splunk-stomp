@@ -95,6 +95,7 @@ class SplunkHelper(object):
         See http://docs.splunk.com/Documentation/Splunk/latest/AdvancedDev/ModInputsStream
         '''
         sys.stdout.write('<stream>')
+        sys.stdout.flush()
 
     @classmethod
     def stream_data(self, data):
@@ -104,6 +105,7 @@ class SplunkHelper(object):
         sys.stdout.write('<event unbroken="1"><data>')
         sys.stdout.write(xml.sax.saxutils.escape(data))
         sys.stdout.write('</data><done/></event>\n')
+        sys.stdout.flush()
 
     @classmethod
     def close_stream(self):
@@ -111,6 +113,7 @@ class SplunkHelper(object):
         See http://docs.splunk.com/Documentation/Splunk/latest/AdvancedDev/ModInputsStream
         '''
         sys.stdout.write('</stream>\n')
+        sys.stdout.flush()
 
     @classmethod
     def print_error(cls, message):
@@ -120,6 +123,7 @@ class SplunkHelper(object):
         sys.stdout.write('<error><message>')
         sys.stdout.write(xml.sax.saxutils.escape(message))
         sys.stdout.write('</message></error>')
+        sys.stdout.flush()
 
 
 # Splunk listener class.
