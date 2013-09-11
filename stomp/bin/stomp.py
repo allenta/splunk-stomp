@@ -46,6 +46,28 @@ SCHEME = '''<scheme>
                 <required_on_create>false</required_on_create>
                 <required_on_edit>false</required_on_edit>
             </arg>
+            <arg name="use_explicit_acks">
+                <title>Use explicit ACKs</title>
+                <description>If enabled, explicitly ACK incoming messages once consumed by Splunk.</description>
+                <data_type>boolean</data_type>
+                <required_on_create>false</required_on_create>
+                <required_on_edit>false</required_on_edit>
+            </arg>
+            <arg name="use_persistent_subscription">
+                <title>Use a persistent subscription</title>
+                <description>If enabled, use persitent topic subscriptions.</description>
+                <data_type>boolean</data_type>
+                <required_on_create>false</required_on_create>
+                <required_on_edit>false</required_on_edit>
+            </arg>
+
+            <arg name="subscription_id">
+                <title>Subscription id</title>
+                <description>Subscription id to be used in MQM connections (defaults to 'splunk-stomp').</description>
+                <data_type>string</data_type>
+                <required_on_create>false</required_on_create>
+                <required_on_edit>false</required_on_edit>
+            </arg>
         </args>
     </endpoint>
 </scheme>
@@ -128,8 +150,20 @@ class SplunkHelper(object):
 
 # Splunk listener class.
 class SplunkListener(object):
+    def __init__(self, connection, use_explicit_acks):
+        self._connection = connection
+        self._use_explicit_acks = use_explicit_acks
+
     def on_message(self, headers, message):
+        # Handle message.
         SplunkHelper.stream_data(message)
+
+        # ACK message.
+        if self._use_explicit_acks:
+            self._connection.ack(**{
+                'message-id': headers['message-id'],
+                'subscription': headers['subscription'],
+            })
 
 
 def parse_name(name):
@@ -281,15 +315,24 @@ def run():
     host, port, destination = parse_name(config['name'])
     username = config.get('username', None)
     password = config.get('password', None)
+    use_explicit_acks = config.get('use_explicit_acks', False)
+    use_persistent_subscription = config.get('use_persistent_subscription', False)
+    subscription_id = config.get('subscription_id', 'splunk-stomp')
 
     # Connect & listen.
     connection = stomppy.Connection(host_and_ports=[(host, port)], user=username, passcode=password)
     try:
         SplunkHelper.open_stream()
-        connection.set_listener('', SplunkListener())
+        connection.set_listener('', SplunkListener(connection, use_explicit_acks))
         connection.start()
         connection.connect()
-        connection.subscribe(destination=destination, ack='auto')
+        connection.subscribe(**{
+            'destination': destination,
+            'version': 1.1,
+            'ack': 'client' if use_explicit_acks else 'auto',
+            'persistent': 'true' if use_persistent_subscription else 'false',
+            'id': subscription_id,
+        })
         while SplunkHelper.is_splunkd_running():
             time.sleep(10)
     finally:

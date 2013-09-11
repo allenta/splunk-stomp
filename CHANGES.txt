@@ -1,3 +1,13 @@
+v0.3, 11/09/2013
+----------------
+
+  - Upgraded embedded stomppy lib to from 3.1.3 to 3.1.5.
+  - Added configuration options to:
+      - Use explicit ACKs.
+      - Use persistent subscriptions.
+      - Select subscription id.
+  - Used STOMP 1.1 in all connections.
+
 v0.3, 22/04/2013
 ----------------
 
