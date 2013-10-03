@@ -39,8 +39,6 @@ Some useful recipes while developing. See [Developer tools for modular inputs](h
 Pending Tasks
 -------------
 
-- Improve error handling.
-
 - Header indexing option.
 
 - Strip newline characters from message body option.

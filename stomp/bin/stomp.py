@@ -155,15 +155,30 @@ class SplunkListener(object):
         self._use_explicit_acks = use_explicit_acks
 
     def on_message(self, headers, message):
-        # Handle message.
-        SplunkHelper.stream_data(message)
+        try:
+            # Handle message.
+            SplunkHelper.stream_data(message)
+        except Exception as e:
+            # NACK message.
+            if self._use_explicit_acks:
+                self._connection.nack(**{
+                    'message-id': headers['message-id'],
+                    'subscription': headers['subscription'],
+                })
 
-        # ACK message.
-        if self._use_explicit_acks:
-            self._connection.ack(**{
-                'message-id': headers['message-id'],
-                'subscription': headers['subscription'],
-            })
+            # Log.
+            logging.warning('Got exception while processing STOMP message: %s', e)
+        else:
+            # ACK message.
+            if self._use_explicit_acks:
+                self._connection.ack(**{
+                    'message-id': headers['message-id'],
+                    'subscription': headers['subscription'],
+                })
+
+    def on_error(self, headers, message):
+        # Log.
+        logging.error('Got unexpected STOMP error message: %s', message)
 
 
 def parse_name(name):
@@ -205,7 +220,7 @@ def get_validation_data():
         params_node = item_node.getElementsByTagName('param')
         for param in params_node:
             name = param.getAttribute('name')
-            logging.debug('VALIDATION XML: found param %s' % name)
+            logging.debug('VALIDATION XML: found param %s', name)
             if name and param.firstChild and \
                param.firstChild.nodeType == param.firstChild.TEXT_NODE:
                 val_data[name] = param.firstChild.data
@@ -240,12 +255,12 @@ def get_config():
                     params = stanza.getElementsByTagName('param')
                     for param in params:
                         param_name = param.getAttribute('name')
-                        logging.debug("CONFIG XML: found param '%s'" % param_name)
+                        logging.debug("CONFIG XML: found param '%s'", param_name)
                         if param_name and param.firstChild and \
                            param.firstChild.nodeType == param.firstChild.TEXT_NODE:
                             data = param.firstChild.data
                             config[param_name] = data
-                            logging.debug("CONFIG XML: '%s' -> '%s'" % (param_name, data))
+                            logging.debug("CONFIG XML: '%s' -> '%s'", param_name, data)
     except Exception, e:
         raise Exception('Error getting Splunk configuration via STDIN: %s' % str(e))
 
@@ -320,24 +335,46 @@ def run():
     subscription_id = config.get('subscription_id', 'splunk-stomp')
 
     # Connect & listen.
-    connection = stomppy.Connection(host_and_ports=[(host, port)], user=username, passcode=password)
-    try:
-        SplunkHelper.open_stream()
-        connection.set_listener('', SplunkListener(connection, use_explicit_acks))
-        connection.start()
-        connection.connect()
-        connection.subscribe(**{
-            'destination': destination,
-            'version': 1.1,
-            'ack': 'client' if use_explicit_acks else 'auto',
-            'persistent': 'true' if use_persistent_subscription else 'false',
-            'id': subscription_id,
-        })
-        while SplunkHelper.is_splunkd_running():
-            time.sleep(10)
-    finally:
-        SplunkHelper.close_stream()
-        connection.disconnect()
+    SplunkHelper.open_stream()
+    stopping = False
+    while not stopping:
+        try:
+            # Connect & subscribe.
+            connection = stomppy.Connection(host_and_ports=[(host, port)], user=username, passcode=password)
+            connection.set_listener('', SplunkListener(connection, use_explicit_acks))
+            connection.start()
+            connection.connect(wait=True)
+            connection.subscribe(**{
+                'destination': destination,
+                'version': 1.1,
+                'ack': 'client' if use_explicit_acks else 'auto',
+                'persistent': 'true' if use_persistent_subscription else 'false',
+                'id': subscription_id,
+            })
+
+            # Periodically check for termination.
+            while not stopping:
+                # Is Splunk already running?
+                if not SplunkHelper.is_splunkd_running():
+                    stopping = True
+                # Is the STOMP connection still valid?
+                elif not connection.is_connected():
+                    break
+                # Wait for the next check.
+                else:
+                    time.sleep(1)
+
+            # Avoid reconnection stampede when restarting.
+            if not stopping:
+                time.sleep(1)
+        except Exception as e:
+            logging.warning('Got exception while consuming STOMP data: %s', e.message)
+        finally:
+            try:
+                connection.disconnect()
+            except:
+                pass
+    SplunkHelper.close_stream()
 
 
 if __name__ == '__main__':
